@@ -11,9 +11,16 @@ type Shape =
     }
   | {
       type: "circle";
-      x: number;
-      y: number;
+      centerX: number;
+      centerY: number;
       radius: number;
+    }
+  | {
+      type: "pencil";
+      startX: number;
+      startY: number;
+      endX: number;
+      endY: number;
     };
 
 export async function initDraw(
@@ -52,13 +59,36 @@ export async function initDraw(
 
   canvas.addEventListener("mouseup", (e) => {
     isDrawing = false;
-    const shape: Shape = {
-      type: "rect",
-      x: startX,
-      y: startY,
-      width,
-      height,
-    };
+
+    // @ts-ignore
+    let selectedTool = window.selectedTool || "pencil";
+    let shape: Shape;
+
+    if (selectedTool === "rect") {
+      shape = {
+        type: "rect",
+        x: startX,
+        y: startY,
+        width,
+        height,
+      };
+    } else if (selectedTool === "circle") {
+      shape = {
+        type: "circle",
+        centerX: startX + width / 2,
+        centerY: startY + height / 2,
+        radius: Math.sqrt((width * width + height * height) / 4),
+      };
+    } else {
+      shape = {
+        type: "pencil",
+        startX: startX,
+        startY: startY,
+        endX: e.clientX,
+        endY: e.clientY,
+      };
+    }
+
     existingShapes.push(shape);
 
     socket.send(
@@ -76,7 +106,20 @@ export async function initDraw(
       height = e.clientY - startY;
       clearCanvas(existingShapes, canvas, ctx);
       ctx.strokeStyle = "rgb(255, 255, 255)";
-      ctx.strokeRect(startX, startY, width, height);
+      // @ts-ignore
+      let selectedTool = window.selectedTool || "pencil";
+      if (selectedTool === "rect") {
+        ctx.strokeRect(startX, startY, width, height);
+      } else if (selectedTool === "circle") {
+        let centerX = startX + width / 2;
+        let centerY = startY + height / 2;
+        let radius = Math.sqrt((width * width + height * height) / 4);
+        // let radius = Math.max(width, height) / 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.closePath();
+      }
     }
   });
 }
@@ -96,7 +139,9 @@ function clearCanvas(
       ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
     } else if (shape.type === "circle") {
       ctx.beginPath();
-      ctx.arc(shape.x, shape.y, shape.radius, 0, Math.PI * 2);
+      ctx.arc(shape.centerX, shape.centerY, shape.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.closePath();
     }
   });
 }

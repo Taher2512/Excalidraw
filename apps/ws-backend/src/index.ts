@@ -81,8 +81,6 @@ wss.on("connection", (ws: WebSocket, req) => {
       const message = parsedData.message;
 
       try {
-        console.log("here1");
-
         await prismaClient.chat.create({
           data: {
             userId,
@@ -90,10 +88,7 @@ wss.on("connection", (ws: WebSocket, req) => {
             roomId,
           },
         });
-        console.log("here2");
       } catch (error) {
-        console.log("here3");
-
         console.error("Error saving chat message:", error);
         return;
       }
